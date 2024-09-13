@@ -1,20 +1,22 @@
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # We apply data cleaning here
 # This may include data reduction, data transformation, data filing, etc.
 # We use the function CleanData() to do the cleaning
 # The cleaning steps are specified in the CleanData() function
 columns_to_delete = [
-	"listing_id",
-	"title",
-	"description",
-	"original_reg_date",
-	"fuel_type",
-	"original_reg_date",
-	"opc_scheme",
-	"lifespan",
-	"eco_category",
-	"indicative_price",
+	'listing_id',
+	'title',
+	'description',
+	'original_reg_date',
+	'fuel_type',
+	'original_reg_date',
+	'opc_scheme',
+	'lifespan',
+	'eco_category',
+	'indicative_price',
 ]
 
 
@@ -46,7 +48,7 @@ def PreprocessData(in_path, out_path):
 
 
 def HandlingMissingValues(df):
-	# Step 1: fill in the missing values in column 'make' since we can infer them
+	# Step: fill in the missing values in column 'make' since we can infer them
 	# Fill in the column 'make' base on the column 'make' and 'model'
 	# This part of code reduce the null value to 0 for column 'make'
 	model_dict = {}
@@ -58,10 +60,13 @@ def HandlingMissingValues(df):
 		if pd.isna(row['make']):
 			df.loc[index, 'make'] = model_dict[row['model']]
 
-	# Step 2: remove the rows with the 'manufactured' column missing, 7 rows in total
+	# Then concatenate column 'model' and 'make' to avoid duplicate 'model' values
+	df.loc[:, 'model'] = df['make'].str.cat(df['model'], sep='-')
+
+	# Step: remove the rows with the 'manufactured' column missing, 7 rows in total
 	df = df.dropna(subset=['manufactured'])
 
-	# Step 3: fill in the missing values in column 'curb_weight'
+	# Step: fill in the missing values in column 'curb_weight'
 	# The curb weight of cars for a certain model are very likely to be similar
 	# So we take the average values
 	# If there are still missing values, we take the average of 'type_of_vehicle'
@@ -73,18 +78,32 @@ def HandlingMissingValues(df):
 	df.loc[:, 'curb_weight'] = df['curb_weight'].fillna(mean_values)
 	df.loc[:, 'curb_weight'] = df['curb_weight'].round()
 
-	# Step 4: fill in the missing values in column 'power'
+	# Step: fill in the missing values in column 'power'
 	# We do the same as we did in step 3 here
-	print(df["power"].isna().sum())
 	mean_values = df.groupby('model')['power'].transform('mean')
 	df.loc[:, 'power'] = df['power'].fillna(mean_values)
 	df.loc[:, 'power'] = df['power'].round()
-	print(df["power"].isna().sum())
 
 	mean_values = df.groupby('type_of_vehicle')['power'].transform('mean')
 	df.loc[:, 'power'] = df['power'].fillna(mean_values)
 	df.loc[:, 'power'] = df['power'].round()
-	print(df["power"].isna().sum())
+
+	# Step: fill in the missing values in column 'engine_cap'
+	# We do the same as we did in step 3 here
+	mean_values = df.groupby('model')['engine_cap'].transform('mean')
+	df.loc[:, 'engine_cap'] = df['engine_cap'].fillna(mean_values)
+	df.loc[:, 'engine_cap'] = df['engine_cap'].round()
+
+	mean_values = df.groupby('type_of_vehicle')['engine_cap'].transform('mean')
+	df.loc[:, 'engine_cap'] = df['engine_cap'].fillna(mean_values)
+	df.loc[:, 'engine_cap'] = df['engine_cap'].round()
+
+	# Step: fill in the missing values in column 'no_of_owners'
+	# We use the global average here
+	mean_values = df['no_of_owners'].mean()
+	df.loc[:, 'no_of_owners'] = df['no_of_owners'].fillna(mean_values)
+	df.loc[:, 'no_of_owners'] = df['no_of_owners'].round()
+
 	return df
 
 
