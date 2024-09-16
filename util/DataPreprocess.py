@@ -46,9 +46,12 @@ def PreprocessData(in_path, out_path):
 
 	# Removing useless columns
 	df = DeleteColumns(df)
-
 	total_nan_count = df.isna().sum().sum()
-	print(total_nan_count)
+	print("Missing values after cleaning:", total_nan_count)
+
+	# Data encoding
+	df = DataEncoding(df)
+
 	# Data
 	WriteCSV(df, out_path)
 
@@ -113,6 +116,12 @@ def HandlingMissingValues(df):
 	# Step: we remove rows where 'depreciation' or 'dereg_value' is null gere
 	# Around 24400 rows left after this step
 	df = df.dropna(subset=['depreciation', 'dereg_value'])
+	return df
+
+
+def DataEncoding(df):
+	df.loc[:, 'transmission'] = df['transmission'].map({'auto': 0, 'manual': 1})
+
 	return df
 
 
