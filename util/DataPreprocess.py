@@ -11,12 +11,18 @@ columns_to_delete = [
 	'title',
 	'description',
 	'original_reg_date',
-	'fuel_type',
+	'fuel_type',  # We may consider filling up this column later
 	'original_reg_date',
 	'opc_scheme',
 	'lifespan',
 	'eco_category',
 	'indicative_price',
+	'road_tax',
+	'mileage',
+	'omv',
+	'arf',
+	'features',
+	'accessories'
 ]
 
 
@@ -104,6 +110,9 @@ def HandlingMissingValues(df):
 	df.loc[:, 'no_of_owners'] = df['no_of_owners'].fillna(mean_values)
 	df.loc[:, 'no_of_owners'] = df['no_of_owners'].round()
 
+	# Step: we remove rows where 'depreciation' or 'dereg_value' is null gere
+	# Around 24400 rows left after this step
+	df = df.dropna(subset=['depreciation', 'dereg_value'])
 	return df
 
 
