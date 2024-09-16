@@ -48,7 +48,7 @@ def PreprocessData(in_path, out_path):
 	df = DeleteColumns(df)
 
 	total_nan_count = df.isna().sum().sum()
-	print(total_nan_count)
+	print("Missing values after cleaning:", total_nan_count)
 	# Data
 	WriteCSV(df, out_path)
 
