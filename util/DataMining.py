@@ -1,5 +1,5 @@
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.svm import SVR
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.metrics import mean_squared_error
@@ -7,7 +7,7 @@ from sklearn.preprocessing import StandardScaler
 import numpy as np
 
 
-def RandomForest(x_train, x_test, y_train, y_test):
+def RandomForestMining(x_train, x_test, y_train, y_test):
 	# Normalize the attributes
 	scaler = StandardScaler()
 	x_train = scaler.fit_transform(x_train)
@@ -20,6 +20,8 @@ def RandomForest(x_train, x_test, y_train, y_test):
 	# Calculate RMSE
 	rmse = np.sqrt(mean_squared_error(y_test, y_pred))
 	print(f'RMSE on test data: {rmse}')
+
+	return rmse
 
 
 def SVRMining(x_train, x_test, y_train, y_test):
@@ -57,3 +59,11 @@ def KNNMining(x_train, x_test, y_train, y_test):
 	y_pred = knn_model.predict(x_test)
 	rmse = np.sqrt(mean_squared_error(y_test, y_pred))
 	print(f'Root Mean Squared Error on Test Set: {rmse}')
+
+
+def split_dataframe(df, target_column, test_size=0.2, random_state=None):
+	X = df.drop(columns=[target_column])
+	y = df[target_column]
+	x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
+
+	return x_train, x_test, y_train, y_test

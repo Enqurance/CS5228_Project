@@ -1,7 +1,10 @@
-import pandas as pd
 from sklearn.linear_model import LinearRegression
-import numpy as np
 from sklearn.preprocessing import MultiLabelBinarizer
+
+import numpy as np
+import pandas as pd
+
+from util.Outlier import remove_outliers_by_group
 
 columns_to_delete = [
 	'listing_id',
@@ -127,7 +130,7 @@ def HandlingMissingValues(df):
 	df.loc[missing_indices, 'road_tax'] = [round(yi) for yi in y_pred]
 
 	# Step: we handle missing values in column 'mileage' here
-	#
+	# We do random filling here
 	missing_indices = df['mileage'].isnull()
 	num_missing = missing_indices.sum()
 
@@ -193,6 +196,15 @@ def HandlingCategoryAttribute(df):
 def DataEncoding(df):
 	# We handle the attribute 'category' here
 	df = HandlingCategoryAttribute(df)
+	return df
+
+
+def OutlierRemoval(df):
+	# For column omv, we apply 3-sigma law to remove outliers by group
+	df = remove_outliers_by_group(df, 'model', 'omv')
+
+	num_records, num_attributes = df.shape
+	print("There are {} data points, each with {} attributes".format(num_records, num_attributes))
 	return df
 
 
