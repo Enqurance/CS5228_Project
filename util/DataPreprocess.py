@@ -1,39 +1,10 @@
-import pandas as pd
 from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import MultiLabelBinarizer
+
 import numpy as np
+import pandas as pd
 
-# listing_id            	Identical ID
-# title						Indicating cars' titles, very sparse with 7000 types in 25000 data points
-# make                   95个类，可以编码使用
-# model						799个类  可以编码使用  可以考虑把少的集中起来定义为其他。例如少于10的类别
-# description			删了 太杂
-# manufactured				71个类，可以编码使用
-# original_reg_date			删了
-# reg_date					可以尝试编码日期只保留年
-# type_of_vehicle			良好分类  可以编码
-# category					两百多种，可以考虑把少的集中起来定义为其他。例如少于10的类别 编码
-# transmission				良好分类  编码
-# curb_weight				可以编码变成区间，也可以不动
-# power						空值比较多 可以编码变成区间，也可以不动
-# fuel_type						删
-# engine_cap                建议不动，和road_tax有关系
-# no_of_owners					用原值 不做处理
-
-# depreciation                  有空值但比较少直接去掉空行
-# coe                       没有空值    这个值怎么搞还在考虑
-# road_tax                      和 engine_cap 有对应关系  根据engine填充 建议不动
-# dereg_value               有空值但比较少直接去掉空行 这个值怎么搞还在考虑
-# mileage                  比较集中  填充个人用的随机值
-
-# omv						和下面的arf似乎有对应关系  空行直接删了 可以编码变成区间，也可以不动
-# arf                       空行直接删了 可以编码变成区间，也可以不动
-# opc_scheme			删
-# lifespan				删
-# eco_category				删
-# features					 删 和下面的accessory感觉差不多  文字属性 暂时先删掉  不过提示属于worth属性，感觉可以挖掘一下
-# accessories               删
-# indicative_price			删
-# price
+from util.Outlier import remove_outliers_by_group
 
 columns_to_delete = [
 	'listing_id',
@@ -67,13 +38,14 @@ def PreprocessData(in_path, out_path):
 	# Data cleaning
 	# Dealing with missing values
 	df = HandlingMissingValues(df)
-
-	# Removing useless columns
-	df = DeleteColumns(df)
 	total_nan_count = df.isna().sum().sum()
 	print("Missing values after cleaning:", total_nan_count)
 
+	# Removing useless columns
+	df = DeleteColumns(df)
+
 	# Data encoding
+	df = HandlingCategoryAttribute(df)
 	df = DataEncoding(df)
 
 	# Data
@@ -158,7 +130,7 @@ def HandlingMissingValues(df):
 	df.loc[missing_indices, 'road_tax'] = [round(yi) for yi in y_pred]
 
 	# Step: we handle missing values in column 'mileage' here
-	#
+	# We do random filling here
 	missing_indices = df['mileage'].isnull()
 	num_missing = missing_indices.sum()
 
@@ -175,35 +147,64 @@ def HandlingMissingValues(df):
 	return df
 
 
-# 可以编码的列：make,model,reg_date,type_of_vehicle,category,transmission
+def HandlingCategoryAttribute(df):
+	# Replace '-' with an empty string
+	df['category'] = df['category'].replace('-', '')
+
+	# Split the 'category' column into lists
+	df['category_list'] = df['category'].str.split(', ')
+
+	# Handle empty strings by replacing them with empty lists
+	df['category_list'] = df['category_list'].apply(lambda x: [] if x == [''] else x)
+
+	# Import itertools for flattening lists
+	from itertools import chain
+
+	# Flatten the list of lists to a single list
+	all_categories = list(chain.from_iterable(df['category_list']))
+
+	# Get the unique categories
+	unique_categories = set(all_categories)
+
+	# Print the number of unique categories
+	print(f"Number of unique categories: {len(unique_categories)}")
+	print("Unique categories:", unique_categories)
+
+	# Initialize the MultiLabelBinarizer
+	mlb = MultiLabelBinarizer()
+
+	# Fit and transform the category lists
+	category_dummies = mlb.fit_transform(df['category_list'])
+
+	# Create a DataFrame with the one-hot encoded categories
+	category_df = pd.DataFrame(category_dummies, columns=mlb.classes_, index=df.index)
+
+	# Concatenate the new dummy columns to the original DataFrame
+	df = pd.concat([df, category_df], axis=1)
+
+	# Drop the temporary 'category_list' column if desired
+	df.drop('category_list', axis=1, inplace=True)
+	df.drop('category', axis=1, inplace=True)
+
+	num_records, num_attributes = df.shape
+
+	print("There are {} data points, each with {} attributes.".format(num_records, num_attributes))
+	return df
+
+
+# We apply data encoding here
 def DataEncoding(df):
-	# 使用 pandas 的 factorize 方法编码 'make' 列
-	df['make_encoded'], unique_values = pd.factorize(df['make'])
+	# We handle the attribute 'category' here
+	# df = HandlingCategoryAttribute(df)
+	return df
 
-	model_counts = df['model'].value_counts()
-	to_other = model_counts[model_counts < 10].index
-	# 将这些类别替换为“其他”
-	df['model'] = df['model'].apply(lambda x: 'Other' if x in to_other else x)
-	df['model_encoded'], unique_values = pd.factorize(df['model'])
 
-	df['manufactured_encoded'], unique_values = pd.factorize(df['manufactured'])
+def OutlierRemoval(df):
+	# For column omv, we apply 3-sigma law to remove outliers by group
+	df = remove_outliers_by_group(df, 'model', 'omv')
 
-	# 将 'reg_date' 列转换为 '月-年' 格式  然后编码
-	df['reg_date'] = pd.to_datetime(df['reg_date'], format='%d-%b-%Y')
-	df['reg_date'] = df['reg_date'].dt.strftime('%Y')
-	df['reg_date_encoded'], unique_values = pd.factorize(df['reg_date'])
-
-	df['type_of_vehicle_encoded'], unique_values = pd.factorize(df['type_of_vehicle'])
-
-	category_counts = df['category'].value_counts()
-	to_other = category_counts[category_counts < 10].index
-	# 将这些类别替换为“其他”
-	df['category'] = df['category'].apply(lambda x: 'Other' if x in to_other else x)
-	df['category_encoded'], unique_values = pd.factorize(df['category'])
-
-	df['transmission'], unique_values = pd.factorize(df['transmission'])
-	# df.loc[:, 'transmission'] = df['transmission'].map({'auto': 0, 'manual': 1})
-
+	num_records, num_attributes = df.shape
+	print("There are {} data points, each with {} attributes".format(num_records, num_attributes))
 	return df
 
 
