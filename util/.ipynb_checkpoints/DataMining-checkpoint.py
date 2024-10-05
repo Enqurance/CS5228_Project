@@ -17,7 +17,7 @@ def RandomForestMiningByModel(x_train, x_test, y_train, y_test):
 		X = group.drop(['model'], axis=1)
 		y = y_train[y_train['model'] == model_type].drop(['model'], axis=1)
 
-		model = RandomForestRegressor(n_estimators=50)
+		model = RandomForestRegressor(n_estimators=100, random_state=42)
 
 		model.fit(X, np.ravel(y))
 		model_dict[model_type] = model
@@ -54,25 +54,19 @@ def RandomForestMining(x_train, x_test, y_train, y_test=None, dev=False):
 	scaler = StandardScaler()
 	x_train = scaler.fit_transform(x_train)
 	x_test = scaler.transform(x_test)
-	model = RandomForestRegressor(
-		n_estimators=300,
-		max_depth=16
-	)
+	model = RandomForestRegressor(n_estimators=100, random_state=42)
 	model.fit(x_train, y_train)
 	y_pred = model.predict(x_test)
 
 	# Calculate RMSE
-	if dev:
-		ids = [i for i in range(len(x_test))]
-		return pd.DataFrame(
-			list(zip(ids, y_pred)),
-			columns=['Id', 'Predicted']
-		)
-	else:
-		print('Running not in develop mode')
-		rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-		print(f'RMSE on test data: {rmse}')
-		return rmse
+    print(dev)
+    # if dev:
+    #     return y_pred
+    # else:
+    #     print('Not developing')
+    #     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    #     print(f'RMSE on test data: {rmse}')
+    #     return rmse
 
 
 def SVRMining(x_train, x_test, y_train, y_test):
