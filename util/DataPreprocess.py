@@ -195,7 +195,7 @@ def HandlingCategoryAttribute(df):
 # We apply data encoding here
 def DataEncoding(df):
 	# We handle the attribute 'category' here
-	df = HandlingCategoryAttribute(df)
+	# df = HandlingCategoryAttribute(df)
 	return df
 
 
