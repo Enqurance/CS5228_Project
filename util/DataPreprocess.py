@@ -199,9 +199,10 @@ def DataEncoding(df):
 	return df
 
 
-def OutlierRemoval(df):
+# Remove outlier by group
+def OutlierRemoval(df, group_column, target_column):
 	# For column omv, we apply 3-sigma law to remove outliers by group
-	df = remove_outliers_by_group(df, 'model', 'omv')
+	df = remove_outliers_by_group(df, group_column, target_column)
 
 	num_records, num_attributes = df.shape
 	print("There are {} data points, each with {} attributes".format(num_records, num_attributes))
