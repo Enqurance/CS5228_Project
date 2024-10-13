@@ -1,15 +1,15 @@
 # This function apply 3-sigma law to remove outliers
 def remove_outliers_by_group(df, group_column, target_column):
-	def remove_outliers_3sigma(group):
+	def remove_outliers_nsigma(group, n):
 		mean = group[target_column].mean()
 		std = group[target_column].std()
 
-		lower_limit = mean - 3 * std
-		upper_limit = mean + 3 * std
+		lower_limit = mean - n * std
+		upper_limit = mean + n * std
 
 		return group[(group[target_column] >= lower_limit) & (group[target_column] <= upper_limit)]
 
-	def remove_outliers_percentile(name):
+	def remove_outliers_percentile(name,n):
 		lowpercentile = df[name].quantile(0.05)
 		uppercentile = df[name].quantile(0.95)
 
@@ -39,7 +39,7 @@ def remove_outliers_by_group(df, group_column, target_column):
 
 		return df_cleaned
 
-	df_filtered = df.groupby(group_column).apply(remove_outliers_3sigma)
+	df_filtered = df.groupby(group_column).apply(remove_outliers_nsigma, n=2)
 	df_filtered = df_filtered.reset_index(drop=True)
 
 	return df_filtered

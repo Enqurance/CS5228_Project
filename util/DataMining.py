@@ -99,7 +99,10 @@ def RandomForestMiningByModel(x_train, x_test, y_train, y_test=None, dev=False):
 		X = group.drop(['model'], axis=1)
 		y = y_train[y_train['model'] == model_type].drop(['model'], axis=1)
 
-		model = RandomForestRegressor(n_estimators=50)
+		model = RandomForestRegressor(
+			n_estimators=100,
+			max_depth=16
+		)
 
 		model.fit(X, np.ravel(y))
 		model_dict[model_type] = model
@@ -121,8 +124,9 @@ def RandomForestMiningByModel(x_train, x_test, y_train, y_test=None, dev=False):
 		else:
 			y_pred = pd.concat([y_pred, y_pred_new_df])
 
-	y_test = y_test.drop(['model'], axis=1)
-	y_test_aligned = y_test.reindex(y_pred.index)
+
+	y_test_res = y_test.drop(['model'], axis=1)
+	y_test_aligned = y_test_res.reindex(y_pred.index)
 	if dev:
 		ids = [i for i in range(len(x_test))]
 		return pd.DataFrame(
@@ -130,6 +134,18 @@ def RandomForestMiningByModel(x_train, x_test, y_train, y_test=None, dev=False):
 			columns=['Id', 'Predicted']
 		)
 	else:
+		print(y_test_aligned.head())
+		print(y_pred.head())
+		print(len(y_test_aligned), len(y_pred))
+		results_df = pd.DataFrame({
+			'Actual': y_test_aligned['price'],
+			'Predicted': y_pred['prediction'],
+			'Model ID': y_test['model']
+		}, index=y_test_aligned.index)
+
+		# 将 DataFrame 保存为 CSV 文件
+		results_df.to_csv('./data/results.csv', index=False)
+		print("Data saved to results.csv")
 		print('Running not in develop mode')
 		rmse = np.sqrt(mean_squared_error(y_test_aligned, y_pred))
 		print(f'RMSE on test data: {rmse}')
