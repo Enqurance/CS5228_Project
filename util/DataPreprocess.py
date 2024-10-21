@@ -209,5 +209,24 @@ def OutlierRemoval(df, group_column, target_column):
 	return df
 
 
+def DataAugmentation(df):
+	model_counts = df['model'].value_counts()
+	models_to_augment = model_counts[model_counts < 20].index
+	augmented_data = pd.DataFrame()
+
+	for model in models_to_augment:
+		subset = df[df['model'] == model]
+		num_copies = 5
+		if num_copies > 0:
+			augmented_subset = pd.concat([subset] * (num_copies + 1), ignore_index=True)
+		else:
+			augmented_subset = subset
+
+		augmented_data = pd.concat([augmented_data, augmented_subset], ignore_index=True)
+
+	df_augmented = pd.concat([df, augmented_data], ignore_index=True)
+	return df_augmented
+
+
 def DeleteColumns(df):
 	return df.drop(columns=columns_to_delete)

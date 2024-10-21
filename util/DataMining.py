@@ -48,17 +48,18 @@ def LinearRegressionMiningByModel(x_train, x_test, y_train, y_test=None, dev=Fal
 		model.fit(X, y)
 		model_dict[model_type] = model
 
-	for model_type, group in x_test.groupby('model'):
-		X = group.drop(['model'], axis=1)
-		model = model_dict[model_type]
+	y_pred_df = pd.DataFrame(columns=['model', 'prediction'])
+	for test in x_test:
+		model = model_dict[test['model']]
+		X = test.drop(['model'], axis=1)
 		y_pred_new = model.predict(X)
 
-		y_pred_new_df = pd.DataFrame(y_pred_new, index=X.index, columns=['Predicted'])
+		temp_df = pd.DataFrame({
+			'model': [test['model']] * len(y_pred_new),
+			'prediction': y_pred_new
+		})
 
-		if y_pred is None:
-			y_pred = y_pred_new_df
-		else:
-			y_pred = pd.concat([y_pred, y_pred_new_df])
+		y_pred_df = pd.concat([y_pred_df, temp_df], ignore_index=True)
 
 	y_pred_aligned = y_pred.loc[x_test.index]
 	if dev:
@@ -94,60 +95,40 @@ def LinearRegressionMining(x_train, x_test, y_train, y_test=None, dev=False):
 def RandomForestMiningByModel(x_train, x_test, y_train, y_test=None, dev=False):
 	# Normalize the attributes
 	model_dict = {}
-	y_pred = None
 	for model_type, group in x_train.groupby('model'):
 		X = group.drop(['model'], axis=1)
 		y = y_train[y_train['model'] == model_type].drop(['model'], axis=1)
 
 		model = RandomForestRegressor(
-			n_estimators=100,
+			n_estimators=200,
 			max_depth=16
 		)
 
 		model.fit(X, np.ravel(y))
 		model_dict[model_type] = model
 
-	for model_type, group in x_test.groupby('model'):
-		X = group.drop(['model'], axis=1)
-
-		if model_type not in model_dict.keys():
-			y_test = y_test[y_test['model'] != model_type]
-			continue
-
-		model = model_dict[model_type]
+	y_pred = pd.DataFrame(columns=['model', 'Predicted'])
+	for index, test in x_test.iterrows():
+		model = model_dict[test['model']]
+		X = test.drop(['model']).to_frame().T
 		y_pred_new = model.predict(X)
 
-		y_pred_new_df = pd.DataFrame(y_pred_new, index=X.index, columns=['prediction'])
+		temp_df = pd.DataFrame({
+			'model': [test['model']] * len(y_pred_new),
+			'Predicted': y_pred_new,
+		}, index=[index])  # Use the original index for temp_df
+		y_pred = pd.concat([y_pred, temp_df])
 
-		if y_pred is None:
-			y_pred = y_pred_new_df
-		else:
-			y_pred = pd.concat([y_pred, y_pred_new_df])
-
-
-	y_test_res = y_test.drop(['model'], axis=1)
-	y_test_aligned = y_test_res.reindex(y_pred.index)
 	if dev:
-		ids = [i for i in range(len(x_test))]
-		return pd.DataFrame(
-			list(zip(ids, y_pred)),
-			columns=['Id', 'Predicted']
-		)
+		# Reindex y_pred to match x_test's index
+		y_pred = y_pred.reindex(x_test.index)
+		return y_pred['Predicted']
 	else:
-		print(y_test_aligned.head())
-		print(y_pred.head())
-		print(len(y_test_aligned), len(y_pred))
-		results_df = pd.DataFrame({
-			'Actual': y_test_aligned['price'],
-			'Predicted': y_pred['prediction'],
-			'Model ID': y_test['model']
-		}, index=y_test_aligned.index)
-
-		# 将 DataFrame 保存为 CSV 文件
-		results_df.to_csv('./data/results.csv', index=False)
+		y_pred['Actual'] = y_test['price']
+		y_pred.to_csv('./data/results.csv', index=False)
 		print("Data saved to results.csv")
 		print('Running not in develop mode')
-		rmse = np.sqrt(mean_squared_error(y_test_aligned, y_pred))
+		rmse = np.sqrt(mean_squared_error(y_pred['Predicted'], y_test['price']))
 		print(f'RMSE on test data: {rmse}')
 		return rmse
 
@@ -175,21 +156,18 @@ def RandomForestMining(x_train, x_test, y_train, y_test=None, dev=False):
 	# Normalize the attributes
 	scaler = StandardScaler()
 	x_train = scaler.fit_transform(x_train)
-	x_test = scaler.transform(x_test)
+	x_test_scaled = scaler.transform(x_test)
 	model = RandomForestRegressor(
 		n_estimators=500,
 		max_depth=16
 	)
 	model.fit(x_train, y_train)
-	y_pred = model.predict(x_test)
+	y_pred = model.predict(x_test_scaled)
+	y_pred = pd.DataFrame(y_pred, index=x_test.index, columns=['Predicted'])
 
 	# Calculate RMSE
 	if dev:
-		ids = [i for i in range(len(x_test))]
-		return pd.DataFrame(
-			list(zip(ids, y_pred)),
-			columns=['Id', 'Predicted']
-		)
+		return y_pred
 	else:
 		print('Running not in develop mode')
 		rmse = np.sqrt(mean_squared_error(y_test, y_pred))
