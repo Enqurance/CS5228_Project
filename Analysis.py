@@ -17,3 +17,4 @@ rmse_by_group = df.groupby('model', group_keys=False).apply(calculate_rmse)
 
 print(rmse_by_group.head())
 rmse_by_group.to_csv('./temp_data/rmse_by_group_w_augmentation.csv')
+

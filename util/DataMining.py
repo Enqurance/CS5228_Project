@@ -100,14 +100,14 @@ def RandomForestMiningByModel(x_train, x_test, y_train, y_test=None, dev=False):
 		y = y_train[y_train['model'] == model_type].drop(['model'], axis=1)
 
 		model = RandomForestRegressor(
-			n_estimators=100,
-			max_depth=10
+			n_estimators=200,
+			max_depth=16
 		)
 
 		model.fit(X, np.ravel(y))
 		model_dict[model_type] = model
 
-	y_pred_df = pd.DataFrame(columns=['model', 'Predicted'])
+	y_pred = pd.DataFrame(columns=['model', 'Predicted'])
 	for index, test in x_test.iterrows():
 		model = model_dict[test['model']]
 		X = test.drop(['model']).to_frame().T
@@ -116,18 +116,19 @@ def RandomForestMiningByModel(x_train, x_test, y_train, y_test=None, dev=False):
 		temp_df = pd.DataFrame({
 			'model': [test['model']] * len(y_pred_new),
 			'Predicted': y_pred_new,
-		})
-		y_pred_df = pd.concat([y_pred_df, temp_df], ignore_index=True)
+		}, index=[index])  # Use the original index for temp_df
+		y_pred = pd.concat([y_pred, temp_df])
 
 	if dev:
-		y_pred_df['Id'] = range(len(x_test))
-		return y_pred_df[['Id', 'Predicted']]
+		# Reindex y_pred to match x_test's index
+		y_pred = y_pred.reindex(x_test.index)
+		return y_pred['Predicted']
 	else:
-		y_pred_df['Actual'] = y_test['price'].reset_index(drop=True)
-		y_pred_df.to_csv('./data/results.csv', index=False)
+		y_pred['Actual'] = y_test['price']
+		y_pred.to_csv('./data/results.csv', index=False)
 		print("Data saved to results.csv")
 		print('Running not in develop mode')
-		rmse = np.sqrt(mean_squared_error(y_pred_df['Predicted'], y_test['price']))
+		rmse = np.sqrt(mean_squared_error(y_pred['Predicted'], y_test['price']))
 		print(f'RMSE on test data: {rmse}')
 		return rmse
 
@@ -155,21 +156,18 @@ def RandomForestMining(x_train, x_test, y_train, y_test=None, dev=False):
 	# Normalize the attributes
 	scaler = StandardScaler()
 	x_train = scaler.fit_transform(x_train)
-	x_test = scaler.transform(x_test)
+	x_test_scaled = scaler.transform(x_test)
 	model = RandomForestRegressor(
 		n_estimators=500,
 		max_depth=16
 	)
 	model.fit(x_train, y_train)
-	y_pred = model.predict(x_test)
+	y_pred = model.predict(x_test_scaled)
+	y_pred = pd.DataFrame(y_pred, index=x_test.index, columns=['Predicted'])
 
 	# Calculate RMSE
 	if dev:
-		ids = [i for i in range(len(x_test))]
-		return pd.DataFrame(
-			list(zip(ids, y_pred)),
-			columns=['Id', 'Predicted']
-		)
+		return y_pred
 	else:
 		print('Running not in develop mode')
 		rmse = np.sqrt(mean_squared_error(y_test, y_pred))
