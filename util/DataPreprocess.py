@@ -69,7 +69,8 @@ def HandlingMissingValues(df):
 			df.loc[index, 'make'] = model_dict[row['model']]
 
 	# Step: remove the rows with the 'manufactured' column missing, 7 rows in total
-	df = df.dropna(subset=['manufactured'])
+	# df = df.dropna(subset=['manufactured'])
+	df['manufactured'].fillna(df['reg_year'], inplace=True)
 
 	# Step: fill in the missing values in column 'power'
 	# The power of cars for a certain model are very likely to be similar
@@ -131,20 +132,98 @@ def HandlingMissingValues(df):
 
 	# Step: we handle missing values in column 'mileage' here
 	# We do random filling here
-	missing_indices = df['mileage'].isnull()
-	num_missing = missing_indices.sum()
+	# missing_indices = df['mileage'].isnull()
+	# num_missing = missing_indices.sum()
 
-	random_values = np.random.randint(1000, 200001, size=num_missing)
-	df.loc[missing_indices, 'mileage'] = random_values
+	# random_values = np.random.randint(1000, 200001, size=num_missing)
+	# df.loc[missing_indices, 'mileage'] = random_values
+	mean_values = df.groupby('reg_year')['mileage'].transform('mean')
+	df.loc[:, 'mileage'] = df['mileage'].fillna(mean_values)
+	df.loc[:, 'mileage'] = df['mileage'].round()
+	# remaining NaN values apply the avg singapore mileage per year (17500)
+	df['mileage'].fillna((2024 - df['reg_year']) * 17500, inplace=True)
 
+	## --------------------------- omv --------------------
+	mean_values = df.groupby('model')['omv'].transform('mean')
+	df.loc[:, 'omv'] = df['omv'].fillna(mean_values)
+	df.loc[:, 'omv'] = df['omv'].round()
+
+	mean_values = df.groupby('type_of_vehicle')['omv'].transform('mean')
+	df.loc[:, 'omv'] = df['omv'].fillna(mean_values)
+	df.loc[:, 'omv'] = df['omv'].round()
+
+		## --------------------------- curb_weight --------------------
+	mean_values = df.groupby('model')['curb_weight'].transform('mean')
+	df.loc[:, 'curb_weight'] = df['curb_weight'].fillna(mean_values)
+	df.loc[:, 'curb_weight'] = df['curb_weight'].round()
+
+	mean_values = df.groupby('type_of_vehicle')['curb_weight'].transform('mean')
+	df.loc[:, 'curb_weight'] = df['curb_weight'].fillna(mean_values)
+	df.loc[:, 'curb_weight'] = df['curb_weight'].round()
+	
 	# Step: we handle missing values in column 'omv' and 'arf' here
 	# Since there are only around 100 missing values in total in this two columns
 	# We directly drop data points with these columns empty
 	df = df.dropna(subset=['omv', 'arf'])
 
+	df = df.dropna(subset=['curb_weight'])
+
 	total_nulls = df.isnull().sum().sum()
 	print("NaN values after handling: ", total_nulls)
 	return df
+
+def HandlingMissingValuesTest(df, df_test):
+	# Step: remove the rows with the 'manufactured' column missing, 7 rows in total
+	# df = df.dropna(subset=['manufactured'])
+	df_test['manufactured'].fillna(df_test['reg_year'], inplace=True)
+
+	# Step: fill in the missing values in column 'power'
+	# The power of cars for a certain model are very likely to be similar
+	# So we take the average values of power of each car model
+	# If there are still missing values, we take the average of 'type_of_vehicle'
+	mean_values = df.groupby('model')['power'].transform('mean')
+	df_test.loc[:, 'power'] = df_test['power'].fillna(mean_values).round()
+
+	mean_values = df.groupby('type_of_vehicle')['power'].transform('mean')
+	df_test.loc[:, 'power'] = df_test['power'].fillna(mean_values).round()
+
+	# Step: fill in the missing values in column 'engine_cap'
+	# We do the same as we did in step 3 here
+	mean_values = df.groupby('model')['engine_cap'].transform('mean')
+	df_test.loc[:, 'engine_cap'] = df_test['engine_cap'].fillna(mean_values).round()
+
+	mean_values = df.groupby('type_of_vehicle')['engine_cap'].transform('mean')
+	df_test.loc[:, 'engine_cap'] = df_test['engine_cap'].fillna(mean_values).round()
+
+	# Step: we handle missing values in column 'mileage' here
+	# We do random filling here
+	# missing_indices = df['mileage'].isnull()
+	# num_missing = missing_indices.sum()
+
+	# random_values = np.random.randint(1000, 200001, size=num_missing)
+	# df.loc[missing_indices, 'mileage'] = random_values
+	mean_values = df.groupby('reg_year')['mileage'].transform('mean')
+	df_test.loc[:, 'mileage'] = df_test['mileage'].fillna(mean_values).round()
+	# remaining NaN values apply the avg singapore mileage per year (17500)
+	df_test['mileage'].fillna((2024 - df_test['reg_year']) * 17500, inplace=True)
+
+	## --------------------------- omv --------------------
+	mean_values = df.groupby('model')['omv'].transform('mean')
+	df_test.loc[:, 'omv'] = df_test['omv'].fillna(mean_values).round()
+
+	mean_values = df.groupby('type_of_vehicle')['omv'].transform('mean')
+	df_test.loc[:, 'omv'] = df_test['omv'].fillna(mean_values).round()
+
+		## --------------------------- curb_weight --------------------
+	mean_values = df.groupby('model')['curb_weight'].transform('mean')
+	df_test.loc[:, 'curb_weight'] = df_test['curb_weight'].fillna(mean_values).round()
+
+	mean_values = df.groupby('type_of_vehicle')['curb_weight'].transform('mean')
+	df_test.loc[:, 'curb_weight'] = df_test['curb_weight'].fillna(mean_values).round()
+
+	total_nulls = df_test.isnull().sum().sum()
+	print("NaN values after handling: ", total_nulls)
+	return df_test
 
 
 def HandlingCategoryAttribute(df):
