@@ -70,7 +70,7 @@ def HandlingMissingValues(df):
 
 	# Step: remove the rows with the 'manufactured' column missing, 7 rows in total
 	# df = df.dropna(subset=['manufactured'])
-	df['manufactured'].fillna(df['reg_year'], inplace=True)
+	df.loc[:, 'manufactured'] = df['manufactured'].fillna(df['reg_year'])
 
 	# Step: fill in the missing values in column 'power'
 	# The power of cars for a certain model are very likely to be similar
@@ -141,7 +141,7 @@ def HandlingMissingValues(df):
 	df.loc[:, 'mileage'] = df['mileage'].fillna(mean_values)
 	df.loc[:, 'mileage'] = df['mileage'].round()
 	# remaining NaN values apply the avg singapore mileage per year (17500)
-	df['mileage'].fillna((2024 - df['reg_year']) * 17500, inplace=True)
+	df.loc[:, 'mileage'] = df['mileage'].fillna((2024 - df['reg_year']) * 17500)
 
 	## --------------------------- omv --------------------
 	mean_values = df.groupby('model')['omv'].transform('mean')
@@ -175,7 +175,7 @@ def HandlingMissingValues(df):
 def HandlingMissingValuesTest(df, df_test):
 	# Step: remove the rows with the 'manufactured' column missing, 7 rows in total
 	# df = df.dropna(subset=['manufactured'])
-	df_test['manufactured'].fillna(df_test['reg_year'], inplace=True)
+	df_test.loc[:, 'manufactured'] = df_test['manufactured'].fillna(df_test['reg_year'])
 
 	# Step: fill in the missing values in column 'power'
 	# The power of cars for a certain model are very likely to be similar
@@ -205,7 +205,7 @@ def HandlingMissingValuesTest(df, df_test):
 	mean_values = df.groupby('reg_year')['mileage'].transform('mean')
 	df_test.loc[:, 'mileage'] = df_test['mileage'].fillna(mean_values).round()
 	# remaining NaN values apply the avg singapore mileage per year (17500)
-	df_test['mileage'].fillna((2024 - df_test['reg_year']) * 17500, inplace=True)
+	df_test.loc[:, 'mileage'] = df_test['mileage'].fillna((2024 - df_test['reg_year']) * 17500)
 
 	## --------------------------- omv --------------------
 	mean_values = df.groupby('model')['omv'].transform('mean')
