@@ -5,7 +5,8 @@ from sklearn.svm import SVR
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import GradientBoostingRegressor
+import xgboost as xgb
 
 import numpy as np
 import pandas as pd
@@ -73,6 +74,31 @@ def LinearRegressionMiningByModel(x_train, x_test, y_train, y_test=None, dev=Fal
 		return rmse
 
 
+def XGBoostMining(x_train, x_test, y_train, y_test=None, dev=False):
+	# Normalize the attributes
+	scaler = StandardScaler()
+	x_train = scaler.fit_transform(x_train)
+	x_test_scaled = scaler.transform(x_test)
+	model = xgb.XGBRegressor(
+		n_estimators=1500,
+		learning_rate=0.1,
+		max_depth=30,
+		random_state=42
+	)
+	model.fit(x_train, y_train)
+	y_pred = model.predict(x_test_scaled)
+	y_pred = pd.DataFrame(y_pred, index=x_test.index, columns=['Predicted'])
+
+	# Calculate RMSE
+	if dev:
+		return y_pred
+	else:
+		print('Running not in develop mode')
+		rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+		print(f'RMSE on test data: {rmse}')
+		return rmse
+
+
 def LinearRegressionMining(x_train, x_test, y_train, y_test=None, dev=False):
 	model = LinearRegression()
 	model.fit(x_train, y_train)
@@ -122,7 +148,44 @@ def RandomForestMiningByModel(x_train, x_test, y_train, y_test=None, dev=False):
 	if dev:
 		# Reindex y_pred to match x_test's index
 		y_pred = y_pred.reindex(x_test.index)
-		return y_pred['Predicted']
+		return y_pred[['Predicted']]
+	else:
+		y_pred['Actual'] = y_test['price']
+		y_pred.to_csv('./data/results.csv', index=False)
+		print("Data saved to results.csv")
+		print('Running not in develop mode')
+		rmse = np.sqrt(mean_squared_error(y_pred['Predicted'], y_test['price']))
+		print(f'RMSE on test data: {rmse}')
+		return rmse
+
+
+def GradientBoostingMiningByModel(x_train, x_test, y_train, y_test=None, dev=False):
+	# Normalize the attributes
+	model_dict = {}
+	for model_type, group in x_train.groupby('model'):
+		X = group.drop(['model'], axis=1)
+		y = y_train[y_train['model'] == model_type].drop(['model'], axis=1)
+
+		model = GradientBoostingRegressor(n_estimators=200, learning_rate=0.1, max_depth=15, random_state=42)
+
+		model.fit(X, np.ravel(y))
+		model_dict[model_type] = model
+
+	y_pred = pd.DataFrame(columns=['model', 'Predicted'])
+	for index, test in x_test.iterrows():
+		model = model_dict[test['model']]
+		X = test.drop(['model']).to_frame().T
+		y_pred_new = model.predict(X)
+
+		temp_df = pd.DataFrame({
+			'model': [test['model']] * len(y_pred_new),
+			'Predicted': y_pred_new,
+		}, index=[index])  # Use the original index for temp_df
+		y_pred = pd.concat([y_pred, temp_df])
+
+	if dev:
+		y_pred = y_pred.reindex(x_test.index)
+		return y_pred[['Predicted']]
 	else:
 		y_pred['Actual'] = y_test['price']
 		y_pred.to_csv('./data/results.csv', index=False)
@@ -134,17 +197,18 @@ def RandomForestMiningByModel(x_train, x_test, y_train, y_test=None, dev=False):
 
 
 def GradientBoostingMining(x_train, x_test, y_train, y_test=None, dev=False):
-	model = GradientBoostingClassifier(n_estimators=20, learning_rate=0.01, max_depth=3, random_state=42)
+	# Normalize the attributes
+	scaler = StandardScaler()
+	x_train = scaler.fit_transform(x_train)
+	x_test_scaled = scaler.transform(x_test)
+	model = GradientBoostingRegressor(n_estimators=50, learning_rate=0.1, max_depth=10, random_state=42)
 	model.fit(x_train, y_train)
+	y_pred = model.predict(x_test_scaled)
+	y_pred = pd.DataFrame(y_pred, index=x_test.index, columns=['Predicted'])
 
-	y_pred = model.predict(x_test)
 	# Calculate RMSE
 	if dev:
-		ids = [i for i in range(len(x_test))]
-		return pd.DataFrame(
-			list(zip(ids, y_pred)),
-			columns=['Id', 'Predicted']
-		)
+		return y_pred
 	else:
 		print('Running not in develop mode')
 		rmse = np.sqrt(mean_squared_error(y_test, y_pred))

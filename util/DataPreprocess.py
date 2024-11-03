@@ -5,6 +5,9 @@ import numpy as np
 import pandas as pd
 
 from util.Outlier import remove_outliers_by_group
+from sklearn.experimental import enable_iterative_imputer
+from sklearn.impute import IterativeImputer
+from sklearn.linear_model import BayesianRidge
 
 columns_to_delete = [
 	'listing_id',
@@ -152,7 +155,7 @@ def HandlingMissingValues(df):
 	df.loc[:, 'omv'] = df['omv'].fillna(mean_values)
 	df.loc[:, 'omv'] = df['omv'].round()
 
-		## --------------------------- curb_weight --------------------
+	## --------------------------- curb_weight --------------------
 	mean_values = df.groupby('model')['curb_weight'].transform('mean')
 	df.loc[:, 'curb_weight'] = df['curb_weight'].fillna(mean_values)
 	df.loc[:, 'curb_weight'] = df['curb_weight'].round()
@@ -160,7 +163,7 @@ def HandlingMissingValues(df):
 	mean_values = df.groupby('type_of_vehicle')['curb_weight'].transform('mean')
 	df.loc[:, 'curb_weight'] = df['curb_weight'].fillna(mean_values)
 	df.loc[:, 'curb_weight'] = df['curb_weight'].round()
-	
+
 	# Step: we handle missing values in column 'omv' and 'arf' here
 	# Since there are only around 100 missing values in total in this two columns
 	# We directly drop data points with these columns empty
@@ -171,6 +174,7 @@ def HandlingMissingValues(df):
 	total_nulls = df.isnull().sum().sum()
 	print("NaN values after handling: ", total_nulls)
 	return df
+
 
 def HandlingMissingValuesTest(df, df_test):
 	# Step: remove the rows with the 'manufactured' column missing, 7 rows in total
@@ -196,13 +200,6 @@ def HandlingMissingValuesTest(df, df_test):
 	df_test.loc[:, 'engine_cap'] = df_test['engine_cap'].fillna(mean_values).round()
 
 	# Step: we handle missing values in column 'mileage' here
-	# We do random filling here
-	# missing_indices = df['mileage'].isnull()
-	# num_missing = missing_indices.sum()
-
-
-	# random_values = np.random.randint(1000, 200001, size=num_missing)
-	# df.loc[missing_indices, 'mileage'] = random_values
 	mean_values = df.groupby('reg_year')['mileage'].transform('mean')
 	df_test.loc[:, 'mileage'] = df_test['mileage'].fillna(mean_values).round()
 	# remaining NaN values apply the avg singapore mileage per year (17500)
@@ -215,7 +212,7 @@ def HandlingMissingValuesTest(df, df_test):
 	mean_values = df.groupby('type_of_vehicle')['omv'].transform('mean')
 	df_test.loc[:, 'omv'] = df_test['omv'].fillna(mean_values).round()
 
-		## --------------------------- curb_weight --------------------
+	## --------------------------- curb_weight --------------------
 	mean_values = df.groupby('model')['curb_weight'].transform('mean')
 	df_test.loc[:, 'curb_weight'] = df_test['curb_weight'].fillna(mean_values).round()
 
@@ -226,9 +223,8 @@ def HandlingMissingValuesTest(df, df_test):
 	print("NaN values after handling: ", total_nulls)
 	return df_test
 
+
 def HandlingMissingValuesTest2(df_aug, df_test):
-
-
 	# 1. fill in mileage
 	mean_values = df_aug.groupby('reg_year')['mileage'].transform('mean')
 	df_test.loc[:, 'mileage'] = df_test['mileage'].fillna(mean_values)
@@ -240,65 +236,80 @@ def HandlingMissingValuesTest2(df_aug, df_test):
 	df_test['manufactured'].fillna(df_test['reg_year'], inplace=True)
 
 	# 3. fill in dereg_value(temporary)
-	mean_values = df_aug.groupby('model')['dereg_value'].transform('mean')
-	df_test.loc[:, 'dereg_value'] = df_test['dereg_value'].fillna(mean_values).round()
+	columns_to_check = ['type_of_vehicle', 'dereg_value', 'model']
+	columns_exist = all(column in df_test.columns for column in columns_to_check)
+	if columns_exist:
+		mean_values = df_aug.groupby('model')['dereg_value'].transform('mean')
+		df_test.loc[:, 'dereg_value'] = df_test['dereg_value'].fillna(mean_values).round()
 
-	mean_values = df_aug.groupby('type_of_vehicle')['dereg_value'].transform('mean')
-	df_test.loc[:, 'dereg_value'] = df_test['dereg_value'].fillna(mean_values).round()
+		mean_values = df_aug.groupby('type_of_vehicle')['dereg_value'].transform('mean')
+		df_test.loc[:, 'dereg_value'] = df_test['dereg_value'].fillna(mean_values).round()
 
 	# 4. fill in depreciation(temporary)
-	mean_values = df_aug.groupby('model')['depreciation'].transform('mean')
-	df_test.loc[:, 'depreciation'] = df_test['depreciation'].fillna(mean_values).round()
+	columns_to_check = ['type_of_vehicle', 'depreciation', 'model']
+	columns_exist = all(column in df_test.columns for column in columns_to_check)
+	if columns_exist:
+		mean_values = df_aug.groupby('model')['depreciation'].transform('mean')
+		df_test.loc[:, 'depreciation'] = df_test['depreciation'].fillna(mean_values).round()
 
-	mean_values = df_aug.groupby('type_of_vehicle')['depreciation'].transform('mean')
-	df_test.loc[:, 'depreciation'] = df_test['depreciation'].fillna(mean_values).round()
-
+		mean_values = df_aug.groupby('type_of_vehicle')['depreciation'].transform('mean')
+		df_test.loc[:, 'depreciation'] = df_test['depreciation'].fillna(mean_values).round()
 
 	# 5. fill in power
 	# Step: fill in the missing values in column 'power'
 	# The power of cars for a certain model are very likely to be similar
 	# So we take the average values of power of each car model
 	# If there are still missing values, we take the average of 'type_of_vehicle'
-	mean_values = df_aug.groupby('model')['power'].transform('mean')
-	df_test.loc[:, 'power'] = df_test['power'].fillna(mean_values).round()
+	columns_to_check = ['type_of_vehicle', 'power', 'model']
+	columns_exist = all(column in df_test.columns for column in columns_to_check)
+	if columns_exist:
+		mean_values = df_aug.groupby('model')['power'].transform('mean')
+		df_test.loc[:, 'power'] = df_test['power'].fillna(mean_values).round()
 
-	mean_values = df_aug.groupby('type_of_vehicle')['power'].transform('mean')
-	df_test.loc[:, 'power'] = df_test['power'].fillna(mean_values).round()
+		mean_values = df_aug.groupby('type_of_vehicle')['power'].transform('mean')
+		df_test.loc[:, 'power'] = df_test['power'].fillna(mean_values).round()
 
 	# 6. fill in arf
 	# Step: fill in the missing values in column 'arf'
 	# The power of cars for a certain model are very likely to be similar
 	# So we take the average values of power of each car model
 	# If there are still missing values, we take the average of 'type_of_vehicle'
-	mean_values = df_aug.groupby('model')['arf'].transform('mean')
-	df_test.loc[:, 'arf'] = df_test['arf'].fillna(mean_values).round()
+	columns_to_check = ['type_of_vehicle', 'arf', 'model']
+	columns_exist = all(column in df_test.columns for column in columns_to_check)
+	if columns_exist:
+		mean_values = df_aug.groupby('model')['arf'].transform('mean')
+		df_test.loc[:, 'arf'] = df_test['arf'].fillna(mean_values).round()
 
-	mean_values = df_aug.groupby('type_of_vehicle')['arf'].transform('mean')
-	df_test.loc[:, 'arf'] = df_test['arf'].fillna(mean_values).round()
+		mean_values = df_aug.groupby('type_of_vehicle')['arf'].transform('mean')
+		df_test.loc[:, 'arf'] = df_test['arf'].fillna(mean_values).round()
 
 	# 7. fill in omv
 	# Step: fill in the missing values in column 'omv'
 	# The power of cars for a certain model are very likely to be similar
 	# So we take the average values of power of each car model
 	# If there are still missing values, we take the average of 'type_of_vehicle'
-	mean_values = df_aug.groupby('model')['omv'].transform('mean')
-	df_test.loc[:, 'omv'] = df_test['omv'].fillna(mean_values).round()
+	columns_to_check = ['type_of_vehicle', 'omv', 'model']
+	columns_exist = all(column in df_test.columns for column in columns_to_check)
+	if columns_exist:
+		mean_values = df_aug.groupby('model')['omv'].transform('mean')
+		df_test.loc[:, 'omv'] = df_test['omv'].fillna(mean_values).round()
 
-	mean_values = df_aug.groupby('type_of_vehicle')['omv'].transform('mean')
-	df_test.loc[:, 'omv'] = df_test['omv'].fillna(mean_values).round()
-
+		mean_values = df_aug.groupby('type_of_vehicle')['omv'].transform('mean')
+		df_test.loc[:, 'omv'] = df_test['omv'].fillna(mean_values).round()
 
 	# 8. fill in engine_cap
 	# Step: fill in the missing values in column 'engine_cap'
 	# We do the same as we did in step 3 here
-	mean_values = df_aug.groupby('model')['engine_cap'].transform('mean')
-	df_test.loc[:, 'engine_cap'] = df_test['engine_cap'].fillna(mean_values)
-	df_test.loc[:, 'engine_cap'] = df_test['engine_cap'].round()
+	columns_to_check = ['type_of_vehicle', 'engine_cap', 'model']
+	columns_exist = all(column in df_test.columns for column in columns_to_check)
+	if columns_exist:
+		mean_values = df_aug.groupby('model')['engine_cap'].transform('mean')
+		df_test.loc[:, 'engine_cap'] = df_test['engine_cap'].fillna(mean_values)
+		df_test.loc[:, 'engine_cap'] = df_test['engine_cap'].round()
 
-	mean_values = df_aug.groupby('type_of_vehicle')['engine_cap'].transform('mean')
-	df_test.loc[:, 'engine_cap'] = df_test['engine_cap'].fillna(mean_values)
-	df_test.loc[:, 'engine_cap'] = df_test['engine_cap'].round()
-
+		mean_values = df_aug.groupby('type_of_vehicle')['engine_cap'].transform('mean')
+		df_test.loc[:, 'engine_cap'] = df_test['engine_cap'].fillna(mean_values)
+		df_test.loc[:, 'engine_cap'] = df_test['engine_cap'].round()
 
 	# 9. fill in road_tax
 	# First, we fill up NaN values w.r.t. engine_cap
@@ -325,7 +336,6 @@ def HandlingMissingValuesTest2(df_aug, df_test):
 	x_missing = df_test.loc[missing_indices, 'engine_cap'].values.reshape(-1, 1)
 	y_pred = model.predict(x_missing)
 	df_test.loc[missing_indices, 'road_tax'] = [round(yi) for yi in y_pred]
-
 
 	total_nulls = df_test.isnull().sum().sum()
 	print("NaN values after handling: ", total_nulls)
@@ -375,6 +385,41 @@ def HandlingCategoryAttribute(df):
 
 	print("There are {} data points, each with {} attributes.".format(num_records, num_attributes))
 	return df
+
+
+def HandlingMissingValueWithImpute(df, columns):
+	imputer = IterativeImputer(estimator=BayesianRidge(), max_iter=10, random_state=0)
+
+	df_imputed_values = imputer.fit_transform(df[columns])
+	df_imputed = pd.DataFrame(df_imputed_values, columns=columns, index=df.index)
+
+	df_result = df.copy()
+	df_result[columns] = df_imputed
+	total_nulls = df_result.isnull().sum().sum()
+
+	print(df_result.head())
+	print("NaN values after handling: ", total_nulls)
+
+	return df_result
+
+
+def HandlingMissingValueWithImputeReference(df_target, df_reference, columns):
+	combined_df = pd.concat([df_target[columns], df_reference[columns]], ignore_index=True)
+	imputer = IterativeImputer(estimator=BayesianRidge(), max_iter=10, random_state=0)
+	imputed_array = imputer.fit_transform(combined_df)
+	imputed_target = imputed_array[:len(df_target)]
+
+	df_imputed = pd.DataFrame(imputed_target, columns=columns, index=df_target.index)
+
+	df_result = df_target.copy()
+	df_result[columns] = df_imputed
+
+	total_nulls = df_result.isnull().sum().sum()
+
+	print(df_result.head())
+	print("NaN values after handling: ", total_nulls)
+
+	return df_result
 
 
 # We apply data encoding here
