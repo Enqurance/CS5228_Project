@@ -1,4 +1,4 @@
-## Project Structure
+## Project structure
 
 ### data/*
 
@@ -27,3 +27,9 @@ Jupiter notebook containing the data mining and prediction steps for XGB and XGB
 ### DataPreprocess.ipynb
 
 Jupiter notebook containing the preprocess steps for the training and the Kaggle test dataset.
+
+## How to run
+
+1. Run `EDA/EDA.ipynb`
+2. Run `DataPreprocess.ipynb`
+3. Run `DataMining.ipynb`
