@@ -309,6 +309,8 @@ def HandlingMissingValueWithImpute(df, columns):
 
 
 def HandlingMissingValueWithImputeReference(df_target, df_reference, columns):
+	if 'price' in columns:
+		columns.remove('price')
 	combined_df = pd.concat([df_target[columns], df_reference[columns]], ignore_index=True)
 	imputer = IterativeImputer(estimator=BayesianRidge(), max_iter=10, random_state=0)
 	imputed_array = imputer.fit_transform(combined_df)

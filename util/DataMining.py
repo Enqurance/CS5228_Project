@@ -103,7 +103,7 @@ def XGBoostMining(x_train, x_test, y_train, y_test=None, dev=False):
 	x_train = scaler.fit_transform(x_train)
 	x_test_scaled = scaler.transform(x_test)
 	model = xgb.XGBRegressor(
-		n_estimators=1500,
+		n_estimators=2000,
 		learning_rate=0.05,
 		max_depth=4,
 		subsample=1,
@@ -132,7 +132,7 @@ def XGBoostMiningByMake(x_train, x_test, y_train, y_test=None, dev=False):
 		n_estimators=1500,
 		learning_rate=0.05,
 		max_depth=4,
-		subsample=1,
+		subsample=1.0,
 		random_state=42
 	)
 	model_complete.fit(x_train, y_train.drop(columns=['make']))
