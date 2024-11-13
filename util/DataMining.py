@@ -38,7 +38,6 @@ def CombinedDataMiningRandomForestAndLinearRegression(df, df_test):
 
 
 def LinearRegressionMiningByModel(x_train, x_test, y_train, y_test=None, dev=False):
-	# Normalize the attributes
 	model_dict = {}
 	y_pred = None
 	for model_type, group in x_train.groupby('model'):
@@ -79,15 +78,12 @@ def ScalarWithoutMakeModel(x_train, x_test):
 	columns_to_scale = x_train.columns.tolist()
 	columns_to_scale = [col for col in columns_to_scale if col not in ['make', 'model']]
 
-	# Fit the scaler on the training data
 	x_train_scaled_part = scaler.fit_transform(x_train[columns_to_scale])
 	x_train_scaled_part_df = pd.DataFrame(x_train_scaled_part, columns=columns_to_scale)
 
-	# Transform the test data using the same scaler
 	x_test_scaled_part = scaler.transform(x_test[columns_to_scale])
 	x_test_scaled_part_df = pd.DataFrame(x_test_scaled_part, columns=columns_to_scale)
 
-	# Create new scaled DataFrames
 	x_train_scaled_df = x_train.copy()
 	x_train_scaled_df[columns_to_scale] = x_train_scaled_part_df
 
@@ -98,7 +94,6 @@ def ScalarWithoutMakeModel(x_train, x_test):
 
 
 def XGBoostMining(x_train, x_test, y_train, y_test=None, dev=False):
-	# Normalize the attributes
 	scaler = StandardScaler()
 	x_train = scaler.fit_transform(x_train)
 	x_test_scaled = scaler.transform(x_test)
@@ -113,7 +108,6 @@ def XGBoostMining(x_train, x_test, y_train, y_test=None, dev=False):
 	y_pred = model.predict(x_test_scaled)
 	y_pred = pd.DataFrame(y_pred, index=x_test.index, columns=['Predicted'])
 
-	# Calculate RMSE
 	if dev:
 		return y_pred
 	else:
@@ -124,7 +118,6 @@ def XGBoostMining(x_train, x_test, y_train, y_test=None, dev=False):
 
 
 def XGBoostMiningByMake(x_train, x_test, y_train, y_test=None, dev=False):
-	# Normalize the attributes
 	y_train = y_train
 	x_train, x_test = ScalarWithoutMakeModel(x_train, x_test)
 
@@ -178,8 +171,6 @@ def XGBoostMiningByMake(x_train, x_test, y_train, y_test=None, dev=False):
 	y_pred = y_pred.drop(columns=['make'])
 	y_pred.rename(columns={'index': 'Id'}, inplace=True)
 
-
-	# Calculate RMSE
 	if dev:
 
 		return y_pred
@@ -195,7 +186,6 @@ def LinearRegressionMining(x_train, x_test, y_train, y_test=None, dev=False):
 	model.fit(x_train, y_train)
 
 	y_pred = model.predict(x_test)
-	# Calculate RMSE
 	if dev:
 		ids = [i for i in range(len(x_test))]
 		return pd.DataFrame(
@@ -210,7 +200,6 @@ def LinearRegressionMining(x_train, x_test, y_train, y_test=None, dev=False):
 
 
 def RandomForestMiningByModel(x_train, x_test, y_train, y_test=None, dev=False):
-	# Normalize the attributes
 	model_dict = {}
 	for model_type, group in x_train.groupby('model'):
 		X = group.drop(['model'], axis=1)
@@ -233,11 +222,10 @@ def RandomForestMiningByModel(x_train, x_test, y_train, y_test=None, dev=False):
 		temp_df = pd.DataFrame({
 			'model': [test['model']] * len(y_pred_new),
 			'Predicted': y_pred_new,
-		}, index=[index])  # Use the original index for temp_df
+		}, index=[index])  # use the original index for temp_df
 		y_pred = pd.concat([y_pred, temp_df])
 
 	if dev:
-		# Reindex y_pred to match x_test's index
 		y_pred = y_pred.reindex(x_test.index)
 		return y_pred[['Predicted']]
 	else:
@@ -251,7 +239,6 @@ def RandomForestMiningByModel(x_train, x_test, y_train, y_test=None, dev=False):
 
 
 def GradientBoostingMiningByModel(x_train, x_test, y_train, y_test=None, dev=False):
-	# Normalize the attributes
 	model_dict = {}
 	for model_type, group in x_train.groupby('model'):
 		X = group.drop(['model'], axis=1)
@@ -271,7 +258,7 @@ def GradientBoostingMiningByModel(x_train, x_test, y_train, y_test=None, dev=Fal
 		temp_df = pd.DataFrame({
 			'model': [test['model']] * len(y_pred_new),
 			'Predicted': y_pred_new,
-		}, index=[index])  # Use the original index for temp_df
+		}, index=[index])  # use the original index for temp_df
 		y_pred = pd.concat([y_pred, temp_df])
 
 	if dev:
@@ -288,7 +275,6 @@ def GradientBoostingMiningByModel(x_train, x_test, y_train, y_test=None, dev=Fal
 
 
 def GradientBoostingMining(x_train, x_test, y_train, y_test=None, dev=False):
-	# Normalize the attributes
 	scaler = StandardScaler()
 	x_train = scaler.fit_transform(x_train)
 	x_test_scaled = scaler.transform(x_test)
@@ -297,7 +283,6 @@ def GradientBoostingMining(x_train, x_test, y_train, y_test=None, dev=False):
 	y_pred = model.predict(x_test_scaled)
 	y_pred = pd.DataFrame(y_pred, index=x_test.index, columns=['Predicted'])
 
-	# Calculate RMSE
 	if dev:
 		return y_pred
 	else:
@@ -308,7 +293,6 @@ def GradientBoostingMining(x_train, x_test, y_train, y_test=None, dev=False):
 
 
 def RandomForestMining(x_train, x_test, y_train, y_test=None, dev=False):
-	# Normalize the attributes
 	scaler = StandardScaler()
 	x_train = scaler.fit_transform(x_train)
 	x_test_scaled = scaler.transform(x_test)
@@ -320,7 +304,6 @@ def RandomForestMining(x_train, x_test, y_train, y_test=None, dev=False):
 	y_pred = model.predict(x_test_scaled)
 	y_pred = pd.DataFrame(y_pred, index=x_test.index, columns=['Predicted'])
 
-	# Calculate RMSE
 	if dev:
 		return y_pred
 	else:
@@ -333,34 +316,25 @@ def RandomForestMining(x_train, x_test, y_train, y_test=None, dev=False):
 def SVRMining(x_train, x_test, y_train, y_test):
 	print("Using SVR for data mining")
 	scaler = StandardScaler()
-
-	# Scaling
 	x_trian = scaler.fit_transform(x_train)
 	x_test = scaler.transform(x_test)
 
-	# Load SVR model
 	svr = SVR(kernel='rbf', C=100, gamma='auto')
 	svr.fit(x_trian, y_train)
 
-	# Train and test
 	y_pred = svr.predict(x_test)
 	rmse = np.sqrt(mean_squared_error(y_test, y_pred))
 	print(f'Root Mean Squared Error: {rmse}')
 
 
 def KNNMining(x_train, x_test, y_train, y_test):
-	# 'Price' is the target
 	print("Using KNN for data mining")
-
-	# Load KNN model
 	knn_model = KNeighborsRegressor(n_neighbors=100)
 
-	# Cross validation
 	cv_scores = cross_val_score(knn_model, x_train, y_train, cv=20, scoring='neg_mean_squared_error')
 	mean_cv_score = np.sqrt(-cv_scores.mean())
 	print(f'Root Mean Cross-Validated MSE: {mean_cv_score}')
 
-	# Train and test
 	knn_model.fit(x_train, y_train)
 	y_pred = knn_model.predict(x_test)
 	rmse = np.sqrt(mean_squared_error(y_test, y_pred))
