@@ -1,29 +1,29 @@
-# Project Structure
+## Project Structure
 
-## DataMining.ipynb
-
-TODO
-
-## DataPreprocess.ipynb
+### DataMining.ipynb
 
 TODO
 
-## EDA/EDA.ipynb
+### DataPreprocess.ipynb
 
 TODO
 
-## util/DataMining.py
+### EDA/EDA.ipynb
 
 TODO
 
-## util/DataPreprocess.py
+### util/DataMining.py
 
 TODO
 
-## images/*
+### util/DataPreprocess.py
 
 TODO
 
-## environment.yml
+### images/*
+
+TODO
+
+### environment.yml
 
 TODO
