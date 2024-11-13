@@ -1,40 +1,9 @@
-from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import MultiLabelBinarizer
-
-import numpy as np
 import pandas as pd
 from datetime import datetime
-
-from util.Outlier import remove_outliers_by_group
-from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer
 from sklearn.linear_model import BayesianRidge
-
-columns_to_delete = [
-	'listing_id',
-	'title',
-	'description',
-	'original_reg_date',
-	'fuel_type',  # We may consider filling up this column later
-	'opc_scheme',
-	'lifespan',
-	'eco_category',
-	'features',
-	'accessories',
-	'indicative_price'
-]
-
-
-def ReadCSV(file_path):
-	with open(file_path, 'r') as file:
-		df = pd.read_csv(file)
-
-	return df
-
-
-def WriteCSV(df, file_path):
-	df.to_csv(file_path, index=False)
-
+from itertools import chain
 
 def CalculateCarAge(df):
 	if 'reg_date' in df.columns:
@@ -47,7 +16,6 @@ def CalculateCarAge(df):
 		df.drop(columns=['manufactured'])
 
 	return df
-
 
 # Columns with NaN values：['make', 'description', 'manufactured', 'original_reg_date', 'curb_weight', 'power',
 # 				'fuel_type', 'engine_cap', 'no_of_owners', 'depreciation', 'road_tax', 'dereg_value', 'mileage',
@@ -67,7 +35,6 @@ def DataCalculation(df):
 		df['dereg_coe_ratio'] = df['dereg_value'] / df['coe']
 
 	return df
-
 
 def HandlingMissingValue(df):
 	# Step: fill in the missing values in column 'power'
@@ -173,21 +140,6 @@ def HandlingMissingValue(df):
 
 	return df
 
-
-def HandlingMissingValueWithReference(df, df_test):
-	model_dict_model = {}
-	for index, row in df.iterrows():
-		if row['model'] not in model_dict_model.keys() or pd.isna(model_dict_model[row['model']]):
-			model_dict_model[row['model']] = row['make']
-
-	for index, row in df_test.iterrows():
-		if pd.isna(row['make']):
-			if row['model'] in model_dict_model.keys():
-				df_test.loc[index, 'make'] = model_dict_model[row['model']]
-
-	return df_test
-
-
 def HandlingMissingValueTest(df):
 	# Step: Fill in 'power' group by
 	mean_values = df.groupby('model')['power'].transform('mean')
@@ -247,51 +199,27 @@ def HandlingMissingValueTest(df):
 	print("NaN values after handling: ", total_nulls)
 	return df
 
-
 def HandlingCategoryAttribute(df):
-	# Replace '-' with an empty string
 	df['category'] = df['category'].replace('-', '')
-
-	# Split the 'category' column into lists
 	df['category_list'] = df['category'].str.split(', ')
-
-	# Handle empty strings by replacing them with empty lists
 	df['category_list'] = df['category_list'].apply(lambda x: [] if x == [''] else x)
 
-	# Import itertools for flattening lists
-	from itertools import chain
-
-	# Flatten the list of lists to a single list
 	all_categories = list(chain.from_iterable(df['category_list']))
-
-	# Get the unique categories
 	unique_categories = set(all_categories)
-
-	# Print the number of unique categories
 	print(f"Number of unique categories: {len(unique_categories)}")
 	print("Unique categories:", unique_categories)
 
-	# Initialize the MultiLabelBinarizer
 	mlb = MultiLabelBinarizer()
-
-	# Fit and transform the category lists
 	category_dummies = mlb.fit_transform(df['category_list'])
 
-	# Create a DataFrame with the one-hot encoded categories
 	category_df = pd.DataFrame(category_dummies, columns=mlb.classes_, index=df.index)
-
-	# Concatenate the new dummy columns to the original DataFrame
 	df = pd.concat([df, category_df], axis=1)
-
-	# Drop the temporary 'category_list' column if desired
 	df.drop('category_list', axis=1, inplace=True)
 	df.drop('category', axis=1, inplace=True)
 
 	num_records, num_attributes = df.shape
-
 	print("There are {} data points, each with {} attributes.".format(num_records, num_attributes))
 	return df
-
 
 def HandlingMissingValueWithImpute(df, columns):
 	imputer = IterativeImputer(estimator=BayesianRidge(), max_iter=20, random_state=42)
@@ -306,7 +234,6 @@ def HandlingMissingValueWithImpute(df, columns):
 	print("NaN values after handling: ", total_nulls)
 
 	return df_result
-
 
 def HandlingMissingValueWithImputeReference(df_target, df_reference, columns):
 	if 'price' in columns:
@@ -328,24 +255,6 @@ def HandlingMissingValueWithImputeReference(df_target, df_reference, columns):
 
 	return df_result
 
-
-# We apply data encoding here
-def DataEncoding(df):
-	# We handle the attribute 'category' here
-	# df = HandlingMissingValue(df)
-	return df
-
-
-# Remove outlier by group
-def OutlierRemoval(df, group_column, target_column):
-	# For column omv, we apply 3-sigma law to remove outliers by group
-	df = remove_outliers_by_group(df, group_column, target_column)
-
-	num_records, num_attributes = df.shape
-	print("There are {} data points, each with {} attributes".format(num_records, num_attributes))
-	return df
-
-
 def DataAugmentation(df):
 	model_counts = df['model'].value_counts()
 	models_to_augment = model_counts[model_counts < 20].index
@@ -363,7 +272,3 @@ def DataAugmentation(df):
 
 	df_augmented = pd.concat([df, augmented_data], ignore_index=True)
 	return df_augmented
-
-
-def DeleteColumns(df):
-	return df.drop(columns=columns_to_delete)
