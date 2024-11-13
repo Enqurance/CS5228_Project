@@ -17,6 +17,7 @@ conda activate cs5228_project
 
 1. Run `EDA/EDA.ipynb`
 2. Run `DataPreprocess.ipynb`
+3. (Optional) Run `FineTuning.ipynb`: run the notebook if you want to check out the fine tuning steps.
 3. Run `DataMining.ipynb`
    
 ## File Structure
@@ -48,3 +49,7 @@ Jupiter notebook containing the data mining and prediction steps for XGB and XGB
 `DataPreprocess.ipynb`
 
 Jupiter notebook containing the preprocess steps for the training and the Kaggle test dataset.
+
+`FineTuning.ipynb`
+
+Jupiter notebook containing the hyperparameter finetuning steps, and some exploratory work for feature selections.
