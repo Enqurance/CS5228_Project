@@ -3,7 +3,7 @@ import numpy as np
 
 # 读取 CSV 文件
 df1 = pd.read_csv('./data/xgb_result.csv')
-df1 = pd.read_csv('./data/xgb_by_model_result.csv')
+# df1 = pd.read_csv('./data/xgb_by_model_result.csv')
 df2 = pd.read_csv('./data/submission_006.csv')
 
 # 确保 'Predicted' 列存在并且行数相同
