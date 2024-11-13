@@ -1,35 +1,50 @@
-## Project structure
+## Quick Start
 
-### data/*
+You can setup the environment for running this repo quickly with conda. 
+1. Create the environment.
 
-Original training and test data, preprocessed training and test data and prediction results from different models.
+```
+conda env create -f environment.yml
+```
 
-### EDA/EDA.ipynb
+2. Activate the environment.
 
-Jupiter notebook containing the steps for EDA.
+```
+conda activate cs5228_project
+```
 
-### images/*
-
-Images used by the jupiter notebooks in this repositry or the final report.
-
-### util/DataMining.py
-
-Util functions used by the DataMining.ipynb jupiter notebook.
-
-### util/DataPreprocess.py
-
-Util functions used by the DataPreprocess.ipynb jupiter notebook.
-
-### DataMining.ipynb
-
-Jupiter notebook containing the data mining and prediction steps for XGB and XGB by make models.
-
-### DataPreprocess.ipynb
-
-Jupiter notebook containing the preprocess steps for the training and the Kaggle test dataset.
-
-## How to run
+## How to Run
 
 1. Run `EDA/EDA.ipynb`
 2. Run `DataPreprocess.ipynb`
 3. Run `DataMining.ipynb`
+   
+## File Structure
+
+`data/*`
+
+Original training and test data, preprocessed training and test data and prediction results from different models.
+
+`EDA/EDA.ipynb`
+
+Jupiter notebook containing the steps for EDA.
+
+`images/*`
+
+Images used by the jupiter notebooks in this repositry or the final report.
+
+`util/DataMining.py`
+
+Util functions used by the DataMining.ipynb jupiter notebook.
+
+`util/DataPreprocess.py`
+
+Util functions used by the DataPreprocess.ipynb jupiter notebook.
+
+`DataMining.ipynb`
+
+Jupiter notebook containing the data mining and prediction steps for XGB and XGB by make models.
+
+`DataPreprocess.ipynb`
+
+Jupiter notebook containing the preprocess steps for the training and the Kaggle test dataset.
