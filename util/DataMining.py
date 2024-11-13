@@ -74,6 +74,29 @@ def LinearRegressionMiningByModel(x_train, x_test, y_train, y_test=None, dev=Fal
 		return rmse
 
 
+def ScalarWithoutMakeModel(x_train, x_test):
+	scaler = StandardScaler()
+	columns_to_scale = x_train.columns.tolist()
+	columns_to_scale = [col for col in columns_to_scale if col not in ['make', 'model']]
+
+	# Fit the scaler on the training data
+	x_train_scaled_part = scaler.fit_transform(x_train[columns_to_scale])
+	x_train_scaled_part_df = pd.DataFrame(x_train_scaled_part, columns=columns_to_scale)
+
+	# Transform the test data using the same scaler
+	x_test_scaled_part = scaler.transform(x_test[columns_to_scale])
+	x_test_scaled_part_df = pd.DataFrame(x_test_scaled_part, columns=columns_to_scale)
+
+	# Create new scaled DataFrames
+	x_train_scaled_df = x_train.copy()
+	x_train_scaled_df[columns_to_scale] = x_train_scaled_part_df
+
+	x_test_scaled_df = x_test.copy()
+	x_test_scaled_df[columns_to_scale] = x_test_scaled_part_df
+
+	return x_train_scaled_df, x_test_scaled_df
+
+
 def XGBoostMining(x_train, x_test, y_train, y_test=None, dev=False):
 	# Normalize the attributes
 	scaler = StandardScaler()
@@ -81,8 +104,9 @@ def XGBoostMining(x_train, x_test, y_train, y_test=None, dev=False):
 	x_test_scaled = scaler.transform(x_test)
 	model = xgb.XGBRegressor(
 		n_estimators=1500,
-		learning_rate=0.1,
-		max_depth=30,
+		learning_rate=0.05,
+		max_depth=4,
+		subsample=1,
 		random_state=42
 	)
 	model.fit(x_train, y_train)
@@ -95,6 +119,73 @@ def XGBoostMining(x_train, x_test, y_train, y_test=None, dev=False):
 	else:
 		print('Running not in develop mode')
 		rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+		print(f'RMSE on test data: {rmse}')
+		return rmse
+
+
+def XGBoostMiningByMake(x_train, x_test, y_train, y_test=None, dev=False):
+	# Normalize the attributes
+	y_train = y_train
+	x_train, x_test = ScalarWithoutMakeModel(x_train, x_test)
+
+	model_complete = xgb.XGBRegressor(
+		n_estimators=1500,
+		learning_rate=0.05,
+		max_depth=4,
+		subsample=1,
+		random_state=42
+	)
+	model_complete.fit(x_train, y_train.drop(columns=['make']))
+
+	model_dict = {}
+	for car_make, group in x_train.groupby('make'):
+		X = group.drop(['make'], axis=1)
+		y = y_train[y_train['make'] == car_make].drop(['make'], axis=1)
+		n_estimators = len(group) * 5
+		model = xgb.XGBRegressor(
+			n_estimators=n_estimators,
+			learning_rate=0.05,
+			max_depth=4,
+			subsample=1,
+			random_state=42
+		)
+
+		model.fit(X, np.ravel(y))
+		model_dict[car_make] = model
+
+	y_pred = pd.DataFrame(index=x_test.index, columns=['make', 'Predicted'])
+	missing_models = pd.DataFrame(columns=x_train.columns)
+
+	for index, row in x_test.iterrows():
+		if row['make'] in model_dict:
+			model = model_dict[row['make']]
+			X = row.drop(['make']).to_frame().T
+			y_pred_new = model.predict(X)
+			new_row = pd.DataFrame({'make': [row['make']], 'Predicted': [y_pred_new[0]]}, index=[index])
+			y_pred.loc[index] = new_row.iloc[0]
+		else:
+			row_df = pd.DataFrame([row], index=[index])
+			missing_models = pd.concat([missing_models, row_df])
+
+	if not missing_models.empty:
+		X_missing = missing_models
+		y_missing_pred = model_complete.predict(X_missing)
+		y_missing_pred_df = pd.DataFrame(y_missing_pred, columns=['Predicted'], index=missing_models.index)
+		result_df = pd.concat([missing_models['make'], y_missing_pred_df], axis=1)
+		y_pred.update(result_df)
+
+	y_pred.reset_index(inplace=True)
+	y_pred = y_pred.drop(columns=['make'])
+	y_pred.rename(columns={'index': 'Id'}, inplace=True)
+
+
+	# Calculate RMSE
+	if dev:
+
+		return y_pred
+	else:
+		print('Running not in develop mode')
+		rmse = np.sqrt(mean_squared_error(y_test['price'], y_pred['Predicted']))
 		print(f'RMSE on test data: {rmse}')
 		return rmse
 
@@ -127,7 +218,7 @@ def RandomForestMiningByModel(x_train, x_test, y_train, y_test=None, dev=False):
 
 		model = RandomForestRegressor(
 			n_estimators=200,
-			max_depth=16
+			max_depth=4
 		)
 
 		model.fit(X, np.ravel(y))
