@@ -26,9 +26,9 @@ conda activate cs5228_project
 
     Original training and test data, preprocessed training and test data and prediction results from different models.
     
-    The final train file after preprocessed is the train_preprocessed_impute.csv upgraded from the train_preprocessed.csv by applying IterativeImputer of sklearn.impute.
+    The final train file after preprocessed is the `train_preprocessed_impute.csv`, optimized from the `train_preprocessed.csv` by applying IterativeImputer of sklearn.impute.
     
-    The final text file after preprocessed is the test_preprocessed.csv.
+    The final text file after preprocessed is the `test_preprocessed.csv`.
     
     The different /*result.csv are prediction results from different models. The final best kaggle scores are from the xgb_result_best.csv.
 
