@@ -2,6 +2,7 @@ from sklearn.preprocessing import MultiLabelBinarizer
 import pandas as pd
 from datetime import datetime
 from sklearn.impute import IterativeImputer
+from sklearn.experimental import enable_iterative_imputer
 from sklearn.linear_model import BayesianRidge
 from itertools import chain
 
