@@ -1,6 +1,6 @@
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.model_selection import cross_val_score, train_test_split, KFold
 from sklearn.svm import SVR
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.metrics import mean_squared_error
@@ -98,12 +98,21 @@ def XGBoostMining(x_train, x_test, y_train, y_test=None, dev=False):
 	x_train = scaler.fit_transform(x_train)
 	x_test_scaled = scaler.transform(x_test)
 	model = xgb.XGBRegressor(
-		n_estimators=2000,
+		n_estimators=1500,
 		learning_rate=0.05,
 		max_depth=4,
 		subsample=1,
 		random_state=42
 	)
+
+	kf = KFold(n_splits=5, shuffle=True, random_state=42)
+
+	cv_scores = cross_val_score(model, x_train, y_train, cv=kf, scoring='neg_mean_squared_error')
+	cv_rmse_scores = np.sqrt(-cv_scores)
+
+	print(f'Cross-validated RMSE scores: {cv_rmse_scores}')
+	print(f'Mean CV RMSE: {np.mean(cv_rmse_scores)}')
+
 	model.fit(x_train, y_train)
 	y_pred = model.predict(x_test_scaled)
 	y_pred = pd.DataFrame(y_pred, index=x_test.index, columns=['Predicted'])
@@ -297,10 +306,19 @@ def RandomForestMining(x_train, x_test, y_train, y_test=None, dev=False):
 	x_train = scaler.fit_transform(x_train)
 	x_test_scaled = scaler.transform(x_test)
 	model = RandomForestRegressor(
-		n_estimators=200,
-		max_depth=16
+		n_estimators=2000,
+		max_depth=10
 	)
 	model.fit(x_train, y_train)
+
+	kf = KFold(n_splits=5, shuffle=True, random_state=42)
+
+	cv_scores = cross_val_score(model, x_train, y_train, cv=kf, scoring='neg_mean_squared_error')
+	cv_rmse_scores = np.sqrt(-cv_scores)
+
+	print(f'Cross-validated RMSE scores: {cv_rmse_scores}')
+	print(f'Mean CV RMSE: {np.mean(cv_rmse_scores)}')
+
 	y_pred = model.predict(x_test_scaled)
 	y_pred = pd.DataFrame(y_pred, index=x_test.index, columns=['Predicted'])
 
