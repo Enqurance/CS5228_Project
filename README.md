@@ -34,7 +34,7 @@ conda activate cs5228_project
 
 
 - `EDA/EDA.ipynb`
-- 
+
     Jupiter notebook containing the steps for EDA.
 
 
