@@ -30,7 +30,7 @@ conda activate cs5228_project
     
     The final text file after preprocessed is the `test_preprocessed.csv`.
     
-    The different /*result.csv are prediction results from different models. The final best kaggle scores are from the xgb_result_best.csv.
+    The different /*result.csv are prediction results from different models. The final best kaggle scores are from the `xgb_result_best.csv`.
 
 
 - `EDA/EDA.ipynb`
