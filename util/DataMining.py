@@ -143,7 +143,7 @@ def XGBoostMiningByMake(x_train, x_test, y_train, y_test=None, dev=False):
 	for car_make, group in x_train.groupby('make'):
 		X = group.drop(['make'], axis=1)
 		y = y_train[y_train['make'] == car_make].drop(['make'], axis=1)
-		n_estimators = len(group) * 5
+		n_estimators = len(group) * 3
 		model = xgb.XGBRegressor(
 			n_estimators=n_estimators,
 			learning_rate=0.05,
